@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -205,6 +206,19 @@ func parseConfigFromFlags() error {
 		heightHosts := strings.Split(accessSporkHosts, ",")
 		cfg.AccessNodePreviousSporkHosts = append(cfg.AccessNodePreviousSporkHosts, heightHosts...)
 	}
+	if accessSporkRootHeights != "" {
+		for _, value := range strings.Split(accessSporkRootHeights, ",") {
+			height, err := strconv.ParseUint(strings.TrimSpace(value), 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid access-node-spork-root-heights value %q: %w", value, err)
+			}
+			cfg.AccessNodePreviousSporkRootHeights = append(cfg.AccessNodePreviousSporkRootHeights, height)
+		}
+	}
+	if len(cfg.AccessNodePreviousSporkRootHeights) > 0 &&
+		len(cfg.AccessNodePreviousSporkRootHeights) != len(cfg.AccessNodePreviousSporkHosts) {
+		return fmt.Errorf("access-node-spork-root-heights must contain one height per access-node-spork-hosts entry")
+	}
 
 	if forceStartHeight != 0 {
 		cfg.ForceStartCadenceHeight = forceStartHeight
@@ -246,6 +260,7 @@ var (
 	logWriter,
 	filterExpiry,
 	accessSporkHosts,
+	accessSporkRootHeights,
 	cloudKMSKey,
 	cloudKMSProjectID,
 	cloudKMSLocationID,
@@ -265,6 +280,7 @@ func init() {
 	Cmd.Flags().BoolVar(&cfg.WSEnabled, "ws-enabled", false, "Enable websocket connections")
 	Cmd.Flags().StringVar(&cfg.AccessNodeHost, "access-node-grpc-host", "localhost:3569", "Host to the flow access node gRPC API")
 	Cmd.Flags().StringVar(&accessSporkHosts, "access-node-spork-hosts", "", `Previous spork AN hosts, defined following the schema: {host1},{host2} as a comma separated list (e.g. "host-1.com,host2.com")`)
+	Cmd.Flags().StringVar(&accessSporkRootHeights, "access-node-spork-root-heights", "", "Comma-separated first block heights served by previous spork hosts, in the same order; avoids probing historical hosts during startup")
 	Cmd.Flags().StringVar(&flowNetwork, "flow-network-id", "flow-emulator", "Flow network ID (flow-emulator, flow-previewnet, flow-testnet, flow-mainnet)")
 	Cmd.Flags().StringVar(&coinbase, "coinbase", "", "Coinbase address to use for fee collection")
 	Cmd.Flags().Uint64Var(&initHeight, "init-cadence-height", 0, "Define the Cadence block height at which to start the indexing, if starting on a new network this flag should not be used.")

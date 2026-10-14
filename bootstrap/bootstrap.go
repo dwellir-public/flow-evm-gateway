@@ -554,6 +554,7 @@ func setupCrossSporkClient(config config.Config, logger zerolog.Logger) (*reques
 		pastSporkClients,
 		logger,
 		config.FlowNetworkID,
+		config.AccessNodePreviousSporkRootHeights...,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cross spork client: %w", err)
