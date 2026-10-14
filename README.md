@@ -216,7 +216,8 @@ Below is an example configuration for running against mainnet, with a preconfigu
 
 ```bash
 ./flow-evm-gateway run \
---access-node-spork-hosts="access-001.mainnet25.nodes.onflow.org:9000,access-001.mainnet26.nodes.onflow.org:9000" \
+--access-node-spork-hosts="access-001.mainnet25.nodes.onflow.org:9000,access-001.mainnet26.nodes.onflow.org:9000,access-001.mainnet27.nodes.onflow.org:9000" \
+--access-node-spork-root-heights="85981135,88226267,130290659" \
 --access-node-grpc-host=access.mainnet.nodes.onflow.org:9000 \
 --flow-network-id=flow-mainnet \
 --ws-enabled=true \
@@ -225,6 +226,8 @@ Below is an example configuration for running against mainnet, with a preconfigu
 --coa-key=<64-character hexadecimal private key> \
 --gas-price=100000000
 ```
+
+The root heights above come from the [Flow spork registry](https://github.com/onflow/flow/blob/master/sporks.json). Verify them against the network and keep the host and height lists aligned when a new spork is added. With root heights configured, a historical host outage does not block startup or current-spork RPC. Requests that actually need an unavailable historical host still fail. A fresh database that needs historical backfill still requires those hosts to be reachable.
 
 ## Configuration Flags
 
@@ -238,6 +241,7 @@ The application can be configured using the following flags at runtime:
 | `ws-enabled`                   | `false`          | Enable websocket connections                                                               |
 | `access-node-grpc-host`        | `localhost:3569` | Host to the flow access node gRPC API                                                      |
 | `access-node-spork-hosts`      | `""`             | Previous spork AN hosts, defined as a comma-separated list (e.g. `"host-1.com,host2.com"`) |
+| `access-node-spork-root-heights` | `""`          | Optional comma-separated first block heights for the previous spork hosts, in the same order. When set, historical hosts are not probed during startup. |
 | `flow-network-id`              | `flow-emulator`  | Flow network ID (options: `flow-emulator`, `flow-testnet`, `flow-mainnet`)                 |
 | `coinbase`                     | `""`             | Coinbase address to use for fee collection                                                 |
 | `gas-price`                    | `1`              | Static gas price for EVM transactions                                                      |

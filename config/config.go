@@ -48,6 +48,10 @@ type Config struct {
 	AccessNodeHost string
 	// AccessNodePreviousSporkHosts contains a list of the ANs hosts for each spork
 	AccessNodePreviousSporkHosts []string
+	// AccessNodePreviousSporkRootHeights gives the first block height served by each
+	// previous spork host, in the same order as AccessNodePreviousSporkHosts.
+	// When set, previous spork hosts are not probed during startup.
+	AccessNodePreviousSporkRootHeights []uint64
 	// GRPCPort for the RPC API server
 	RPCPort int
 	// GRPCHost for the RPC API server

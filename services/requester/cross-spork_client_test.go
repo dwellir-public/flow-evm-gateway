@@ -2,6 +2,7 @@ package requester
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/onflow/flow-go-sdk"
@@ -170,4 +171,55 @@ func Test_CrossSpork(t *testing.T) {
 		require.ErrorContains(t, err, "provided past-spork clients don't end at the node root block height (500, 502)")
 		require.Nil(t, client)
 	})
+}
+
+func Test_CrossSporkStartsWithUnavailableHistoricalClients(t *testing.T) {
+	remoteErr := errors.New("historical access node unavailable")
+	past, _ := testutils.SetupClient(100, 300)
+	past.GetLatestBlockHeaderFunc = func(context.Context, bool) (*flow.BlockHeader, error) {
+		return nil, remoteErr
+	}
+	past.GetNodeVersionInfoFunc = func(context.Context) (*flow.NodeVersionInfo, error) {
+		return nil, remoteErr
+	}
+	past.GetBlockHeaderByHeightFunc = func(context.Context, uint64) (*flow.BlockHeader, error) {
+		return nil, remoteErr
+	}
+	current, _ := testutils.SetupClient(301, 1000)
+
+	client, err := NewCrossSporkClient(
+		current, []access.Client{past}, zerolog.Nop(), flowGo.Mainnet, 100,
+	)
+	require.NoError(t, err)
+
+	header, err := client.GetBlockHeaderByHeight(context.Background(), 500)
+	require.NoError(t, err)
+	require.Equal(t, uint64(500), header.Height)
+
+	last, err := client.GetLatestHeightForSpork(context.Background(), 200)
+	require.NoError(t, err)
+	require.Equal(t, uint64(300), last)
+
+	_, err = client.GetBlockHeaderByHeight(context.Background(), 200)
+	require.ErrorIs(t, err, remoteErr)
+}
+
+func Test_CrossSporkRejectsInvalidHistoricalRoots(t *testing.T) {
+	current, _ := testutils.SetupClient(501, 1000)
+	past1, _ := testutils.SetupClient(100, 300)
+	past2, _ := testutils.SetupClient(301, 500)
+	past := []access.Client{
+		past1,
+		past2,
+	}
+
+	for _, roots := range [][]uint64{
+		{100},
+		{301, 100},
+		{0, 301},
+		{100, 501},
+	} {
+		_, err := NewCrossSporkClient(current, past, zerolog.Nop(), flowGo.Mainnet, roots...)
+		require.Error(t, err, "roots: %v", roots)
+	}
 }
